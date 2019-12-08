@@ -15,13 +15,53 @@
 #include <string.h>
 #include <stdlib.h>
 #include <time.h>
+#include <sys/time.h>
 #include <ctype.h>
+#include <unistd.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <fcntl.h>
+
+unsigned long mix(unsigned long a, unsigned long b, unsigned long c)
+{
+    a=a-b;  a=a-c;  a=a^(c >> 13);
+    b=b-c;  b=b-a;  b=b^(a << 8);
+    c=c-a;  c=c-b;  c=c^(b >> 13);
+    a=a-b;  a=a-c;  a=a^(c >> 12);
+    b=b-c;  b=b-a;  b=b^(a << 16);
+    c=c-a;  c=c-b;  c=c^(b >> 5);
+    a=a-b;  a=a-c;  a=a^(c >> 3);
+    b=b-c;  b=b-a;  b=b^(a << 10);
+    c=c-a;  c=c-b;  c=c^(b >> 15);
+    return c;
+}
+
+void seedrand(void) {
+    struct timeval t1;
+    unsigned int seed = 0;
+    unsigned int seed2 = 0;
+    unsigned int seed3 = clock();
+    unsigned int seed_final = 0;
+    int fd;
+
+    gettimeofday(&t1, NULL);
+    seed2 = t1.tv_usec + t1.tv_sec;
+
+    fd = open("/dev/urandom", O_RDONLY);
+    if (fd) {
+        read(fd, &seed, sizeof(seed));
+        close(fd);
+    }
+    seed_final = mix(seed, seed2, seed3);
+    srand(seed_final);
+}
 
 void gen_imei(int imei[]) {
     int pos;
     int len = 15;
 
-    srand(time(NULL));
+    //srand(time(NULL));
+    seedrand();
 
     static const char *rbi[] = { "01", "10", "30", "33", "35", "44", "45", "49", "50", "51", "52", "53", "54", "86", "91", "98", "99" };
     static size_t rbi_count = sizeof(rbi) / sizeof(const char*);
